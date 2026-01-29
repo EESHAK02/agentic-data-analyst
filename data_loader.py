@@ -45,5 +45,4 @@ def summarize_dataset(df: pd.DataFrame) -> Dict[str, Any]:
     summary["categorical_columns"] = cat_cols
     #summary["datetime_columns"] = datetime_cols
 
-    
-    pass
+    return summary
