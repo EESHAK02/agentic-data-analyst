@@ -15,6 +15,7 @@ This state is basically the agent's memory across turns which tracks -
 from dataclasses import dataclass, field
 from typing import List, Dict, Any, Optional
 
+# keep track of the agent's state 
 @dataclass
 class AnalystState:
     # user intent
@@ -27,8 +28,10 @@ class AnalystState:
     assumptions: List[str] = field(default_factory=list)
     unanswered_questions: List[str] = field(default_factory=list)
 
-    # dashboard idea and output
+    # dashboard design
     dashboard_plan: Optional[Dict[str, Any]] = None
+
+    # output 
     last_rendered_dashboard: Optional[Any] = None
 
     # condition to end
