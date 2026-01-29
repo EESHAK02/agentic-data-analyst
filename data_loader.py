@@ -40,9 +40,9 @@ def summarize_dataset(df: pd.DataFrame) -> Dict[str, Any]:
 
     numeric_cols = df.select_dtypes(include=["number"]).columns.tolist()
     cat_cols = df.select_dtypes(include=["object", "category"]).columns.tolist()
-    #datetime_cols = df.select_dtypes(include=["datetime"]).columns.tolist()
+    datetime_cols = df.select_dtypes(include=["datetime"]).columns.tolist()
     summary["numeric_columns"] = numeric_cols
     summary["categorical_columns"] = cat_cols
-    #summary["datetime_columns"] = datetime_cols
+    summary["datetime_columns"] = datetime_cols
 
     return summary
