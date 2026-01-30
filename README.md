@@ -1,4 +1,4 @@
-# 🧾 AI Dashboard Analyst
+# 🤖 AI Dashboard Analyst
 
 AI Dashboard Analyst is an interactive, LLM-powered dashboarding assistant. Upload any tabular dataset, and the agent can:
 
