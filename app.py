@@ -25,7 +25,7 @@ from state import AnalystState
 st.set_page_config(layout="wide")
 st.title("🤖 AI Dashboard Analyst")
 
-# --- Initialize state ---
+# Initialize state
 if "state" not in st.session_state:
     st.session_state.state = AnalystState()
 if "ai_output" not in st.session_state:
@@ -41,7 +41,6 @@ state = st.session_state.state
 if not hasattr(state, "awaiting_clarification"):
     state.awaiting_clarification = False
 
-# --- Sidebar: Dataset upload ---
 st.sidebar.header("📂 Upload Dataset")
 file = st.sidebar.file_uploader("Upload CSV or Excel", type=["csv", "xlsx"])
 
@@ -56,7 +55,7 @@ else:
 
 tabs = st.tabs(["Data", "Dashboard", "Insights"])
 
-with tabs[0]:
+with tabs[0]: # Data Tab
     st.subheader("Dataset Preview")
     st.dataframe(df)
 
@@ -97,7 +96,6 @@ with tabs[1]:  # Dashboard tab
             # Case 2: first analysis or new request
             elif intent == "analyze":
                 if state.awaiting_clarification:
-                    # user responded to clarification
                     state.user_goal = user_msg
                     state.awaiting_clarification = False
                     st.markdown("✅ Got it! Generating dashboard / insights...")
@@ -110,7 +108,7 @@ with tabs[1]:  # Dashboard tab
                     st.markdown(f"❓ {question}")
 
                 else:
-                    # question is specific → create or revise
+                    # question is specific - create or revise
                     if state.dashboard_plan and not wants_new_dashboard(user_msg):
                         st.markdown("🔁 Updating the existing dashboard...")
                         state.dashboard_plan = revise_dashboard_plan(state, user_msg)
@@ -132,13 +130,13 @@ with tabs[1]:  # Dashboard tab
             {"role": "assistant", "content": st.session_state.messages[-1]["content"]}
         )
 
-    # --- Render dashboard if available ---
+    # Render dashboard if available 
     if state.dashboard_plan:
         st.divider()
         render_dashboard(state.df, state.dashboard_plan)
 
 
-with tabs[2]:
+with tabs[2]: # Insights tab
     if state.dashboard_plan and "analysis_summary" in state.dashboard_plan:
         summary = state.dashboard_plan["analysis_summary"]
 
