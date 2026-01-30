@@ -19,7 +19,7 @@ def render_kpis(df, kpis):
         fmt = kpi.get("format")
 
         if column not in df.columns:
-            col.warning(f"{kpi['label']} ❌ Column '{column}' not in dataset")
+            col.warning(f"{kpi['label']} Column '{column}' not in dataset")
             continue
 
         try:
