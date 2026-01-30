@@ -1,3 +1,9 @@
 pandas
 streamlit
 ollama
+json
+state
+typing
+re
+plotly.express
+dataclasses
