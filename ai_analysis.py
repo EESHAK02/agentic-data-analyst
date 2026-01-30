@@ -37,15 +37,6 @@ def parse_intent(user_msg: str, state: AnalystState) -> str:
         return "analyze"
 
 
-# def ask_clarification(state: AnalystState) -> str:
-#     """
-#     Generate a clarification question to resolve the most important
-#     uncertainty blocking progress.
-#     """
-
-#     if state.unanswered_questions:
-#         return state.unanswered_questions.pop(0)
-#     return "Could you please provide more details about your exact needs?"
 def ask_clarification(state: AnalystState, user_msg: str, df: pd.DataFrame) -> str:
     """
     Generate a targeted clarification question based on:
