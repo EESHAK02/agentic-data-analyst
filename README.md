@@ -56,10 +56,9 @@ streamlit run app.py
 
 ## Future Improvements
 
-- Allow text-only answers when a dashboard is not necessary
 - Support more advanced analytics (correlations, trends, anomaly detection)
 - Multi-tab dashboards for deeper exploratory analysis
-- Add more interactive controls (filtering, drill-downs, etc.)
+- Add more interactive controls (drill-downs, etc.)
 
 
 
