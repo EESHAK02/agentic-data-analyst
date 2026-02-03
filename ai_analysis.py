@@ -16,54 +16,84 @@ import re
 import ollama
 from data_loader import summarize_dataset
 
-def parse_intent(user_msg: str, state: AnalystState) -> str:
-    """
-    Determine the user's intent based on their message and current state.
 
-    Expected intents:
-    - "clarify" - agent to ask a clarification question
-    - "analyze" - agent to create a new dashboard plan
-    - "revise" - agent to revise existing plan
-    - "render" - agent to render the dashboard
-    """
-    
-    if "clarify" in user_msg.lower():
-        return "clarify"
-    elif "revise" in user_msg.lower():
-        return "revise"
-    elif "render" in user_msg.lower():
-        return "render"
+def decide_response_mode(user_msg: str, state: AnalystState) -> str:
+    if not user_msg:
+        return "explain"
+
+    dashboard_exists = state.dashboard_plan is not None
+
+    prompt = f"""
+You are an AI data analyst agent.
+
+You must choose the BEST next action based on:
+1. The user's message
+2. Whether a dashboard already exists
+
+Current state:
+- Dashboard exists: {dashboard_exists}
+
+Available actions:
+- explain: give a text-only analytical answer
+- create_dashboard: create a new dashboard or charts
+- revise_dashboard: modify or show the existing dashboard
+- clarify: ask a clarifying question if the request is ambiguous
+
+Guidelines:
+- If the user asks to *see*, *show*, or *view* charts AND a dashboard exists → revise_dashboard
+- If the user asks to *create* charts or dashboards AND none exists → create_dashboard
+- If the question is conceptual or analytical → explain
+- If intent is unclear → clarify
+
+User message:
+"{user_msg}"
+
+Respond with ONLY one word:
+explain | create_dashboard | revise_dashboard | clarify
+"""
+
+    try:
+        response = ollama.chat(
+            model="llama3.1:latest",
+            messages=[{"role": "user", "content": prompt}],
+        )
+
+        # print(response)
+
+        intent = response["message"]["content"].strip().lower().split()[0]
+
+    except Exception as e:
+        print("⚠️ Intent classification failed:", e)
+        return "explain"
+
+    if intent == "revise_dashboard" and state.dashboard_plan is None:
+            return "create_dashboard"
+    elif intent not in ["explain", "create_dashboard", "revise_dashboard", "clarify"]:
+        return "explain"
     else:
-        return "analyze"
+        return intent
+            
 
-
-def ask_clarification(state: AnalystState, user_msg: str, df: pd.DataFrame) -> str:
-    """
-    Generate a targeted clarification question based on:
-    - the user's query
-    - dataset summary
-    - current state (assumptions, unanswered questions)
-    """
-
-    # 1. If there are existing unanswered questions, return the first
-    if state.unanswered_questions:
-        return state.unanswered_questions.pop(0)
-
-    # 2. Summarize dataset if not already done
+def get_clarification_question(state: AnalystState, user_msg:str, df:pd.DataFrame) -> str:
+    state.awaiting_clarification = True
+    # ques = "Could you please provide more details about your request to help me assist you better?"
+    # return ques
     summary = state.dataset_summary
     if not summary:
         summary = summarize_dataset(df)
         state.dataset_summary = summary
 
-    # 3. Prompt LLM to suggest a specific clarification
     prompt = f"""
     You are a helpful data analyst assistant.
 
     The user asked: "{user_msg}"
     Dataset summary: {summary}
 
-    Identify the **most important missing detail** that prevents you from fully answering the user's request.
-    Ask a single, clear, specific question in plain English.
+    Generate **one specific, concise question** in plain English to clarify the user's intent.
+    Focus on missing details that prevent you from answering or creating a dashboard.
+
+    Do NOT answer the user's question yet. 
+    Only ask a single question that will help you proceed.
     """
 
     try:
@@ -71,38 +101,82 @@ def ask_clarification(state: AnalystState, user_msg: str, df: pd.DataFrame) -> s
             model="llama3.1:latest",
             messages=[{"role": "user", "content": prompt}],
         )
-        raw = response["message"]["content"]
 
-        # Extract first sentence as clarification
-        question = raw.strip().split("\n")[0]
+        raw = response["message"]["content"].strip()
 
-        # Save it to unanswered questions for tracking
+        # Use the first sentence as the clarification question
+        question = raw.split("\n")[0]
+
+        # Save to unanswered questions for tracking
         state.unanswered_questions.append(question)
 
         return question
 
     except Exception as e:
-        print("⚠️ Clarification generation failed:", e)
-        return "Could you clarify exactly what you want to know about the dataset?"
+        print("⚠️ LLM clarification failed:", e)
+        # fallback hardcoded question
+        return "Could you clarify your request so I can assist you better?"
 
 
-def needs_clarification(user_msg: str) -> bool:
+
+def analyst_explain(user_msg: str, state: AnalystState, df: pd.DataFrame | None = None) -> Dict[str, Any]:
     """
-    Return True if the message is vague and we need clarification.
-    For now, we assume questions with words like 'first', 'best', 'important' are vague.
+    Provide a text-only explanation or insight based on the user's question.
+    Uses LLM to generate a response.
     """
-    vague_keywords = ["first", "important", "best", "interesting", "what to look at", "help me understand"]
-    return any(k in user_msg.lower() for k in vague_keywords)
+    # Summarize dataset if available
+    summary = summarize_dataset(df) if df is not None else "No dataset provided."
 
-def wants_new_dashboard(msg: str) -> bool:
-    triggers = [
-        "start over",
-        "new dashboard",
-        "different dataset",
-        "scratch",
-        "completely new",
-    ]
-    return any(t in msg.lower() for t in triggers)
+    prompt = f"""
+    You are a helpful data analyst assistant.
+
+    Dataset summary:
+    {summary}
+
+    User asked:
+    "{user_msg}"
+
+    Provide a clear, concise, text-only explanation answering the user's question.
+    Include any high-level insights, observations, or next steps.
+    Respond in plain English. Do NOT output JSON.
+    """
+
+    try:
+        response = ollama.chat(
+            model="llama3.1:latest",
+            messages=[{"role": "user", "content": prompt}]
+        )
+        text = response["message"]["content"]
+
+        explanation = {
+            "type": "explanation",
+            "content": text,
+            "next_steps": [
+                "Identify key variables from the question",
+                "Check distributions and trends",
+                "Decide if visualization or dashboard is needed"
+            ]
+        }
+        state.awaiting_clarification = False
+        return explanation
+
+    except Exception as e:
+        print("⚠️ LLM explanation failed:", e)
+        # fallback hardcoded explanation
+        explanation = {
+            "type": "explanation",
+            "content": "Here's how I would approach this question, ...",
+            "next_steps": [
+                "Identify key variables from the question",
+                "Check distributions and trends",
+                "Decide if visualization or dashboard is needed"
+            ]
+        }
+        state.awaiting_clarification = False
+        return explanation
+
+
+
 
 def create_dashboard_plan(df: pd.DataFrame,state: AnalystState) -> Dict[str, Any]:
     """

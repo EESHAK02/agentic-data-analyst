@@ -12,12 +12,15 @@ import streamlit as st
 import pandas as pd
 from data_loader import load_dataset, summarize_dataset
 from ai_analysis import (
-    parse_intent,
-    ask_clarification,
+    # parse_intent,
+    #ask_clarification,
     create_dashboard_plan,
     revise_dashboard_plan,
-    needs_clarification,
-    wants_new_dashboard
+    decide_response_mode,
+    get_clarification_question,
+    analyst_explain
+    #needs_clarification,
+    #wants_new_dashboard
 )
 from dashboard import render_dashboard
 from state import AnalystState
@@ -81,62 +84,97 @@ with tabs[1]:  # Dashboard tab
         with st.chat_message("user"):
             st.markdown(user_msg)
 
-        intent = parse_intent(user_msg, state)
+        mode = decide_response_mode(user_msg, state)
 
         with st.chat_message("assistant"):
+            assistant_response = ""
+            if mode == "explain":
+                response = analyst_explain(user_msg, state, state.df)
+                st.markdown(response["content"])
+                assistant_response = response["content"]
+                for step in response["next_steps"]:
+                    st.markdown(f"- {step}")
 
-            # Case 1: awaiting clarification
-            if state.awaiting_clarification:
+            elif mode == "create_dashboard":
                 state.user_goal = user_msg
-                state.awaiting_clarification = False
-                st.markdown("✅ Got it! Let me design the dashboard.")
                 state.dashboard_plan = create_dashboard_plan(state.df, state)
                 st.session_state.ai_output = state.dashboard_plan
+                assistant_response = "Dashboard created"
+                st.markdown("📊 Dashboard created!")
 
-            # Case 2: first analysis or new request
-            elif intent == "analyze":
-                if state.awaiting_clarification:
-                    state.user_goal = user_msg
-                    state.awaiting_clarification = False
-                    st.markdown("✅ Got it! Generating dashboard / insights...")
-                    state.dashboard_plan = create_dashboard_plan(state.df, state)
-                    st.session_state.ai_output = state.dashboard_plan
+            elif mode == "revise_dashboard":
+                state.dashboard_plan = revise_dashboard_plan(state, user_msg)
+                st.session_state.ai_output = state.dashboard_plan
+                assistant_response = "Dashboard updated"
+                st.markdown("🔁 Dashboard updated!")
 
-                elif needs_clarification(user_msg):
-                    question = ask_clarification(state, user_msg, state.df)
-                    state.awaiting_clarification = True
-                    st.markdown(f"❓ {question}")
+            elif mode == "clarify":
+                question = get_clarification_question(state, user_msg, state.df)
+                st.markdown(f"{question}")
+                assistant_response = question
 
-                else:
-                    # question is specific - create or revise
-                    if state.dashboard_plan and not wants_new_dashboard(user_msg):
-                        st.markdown("🔁 Updating the existing dashboard...")
-                        state.dashboard_plan = revise_dashboard_plan(state, user_msg)
-                    else:
-                        st.markdown("📊 Designing dashboard based on your request...")
-                        state.dashboard_plan = create_dashboard_plan(state.df, state)
+            # Save assistant response to session state
+            st.session_state.messages.append(
+            #     {"role": "assistant", "content": st.session_state.messages[-1]["content"]}
+                {"role": "assistant", "content": assistant_response}
+            )
 
-                    st.session_state.ai_output = state.dashboard_plan
-
-            # Case 4: render
-            elif intent == "render" and state.dashboard_plan:
-                st.markdown("Here’s the current dashboard.")
-
-            else:
-                st.markdown("🤔 I’m not sure what to do yet. Can you clarify?")
-
-        # Save assistant response to session state
-        st.session_state.messages.append(
-            {"role": "assistant", "content": st.session_state.messages[-1]["content"]}
-        )
-
-    # Render dashboard if available 
-    if state.dashboard_plan:
-        st.divider()
-        render_dashboard(state.df, state.dashboard_plan)
+        # --- Render dashboard if available ---
+        if state.dashboard_plan:
+            st.divider()
+            render_dashboard(state.df, state.dashboard_plan)
 
 
-with tabs[2]: # Insights tab
+
+    #     intent = parse_intent(user_msg, state)
+
+    #     with st.chat_message("assistant"):
+
+    #         # Case 1: awaiting clarification
+    #         if state.awaiting_clarification:
+    #             state.user_goal = user_msg
+    #             state.awaiting_clarification = False
+    #             st.markdown("✅ Got it! Let me design the dashboard.")
+    #             state.dashboard_plan = create_dashboard_plan(state.df, state)
+    #             st.session_state.ai_output = state.dashboard_plan
+
+    #         # Case 2: first analysis or new request
+    #         elif intent == "analyze":
+    #             if state.awaiting_clarification:
+    #                 # user responded to clarification
+    #                 state.user_goal = user_msg
+    #                 state.awaiting_clarification = False
+    #                 st.markdown("✅ Got it! Generating dashboard / insights...")
+    #                 state.dashboard_plan = create_dashboard_plan(state.df, state)
+    #                 st.session_state.ai_output = state.dashboard_plan
+
+    #             elif needs_clarification(user_msg):
+    #                 question = ask_clarification(state, user_msg, state.df)
+    #                 state.awaiting_clarification = True
+    #                 st.markdown(f"❓ {question}")
+
+    #             else:
+    #                 # question is specific → create or revise
+    #                 if state.dashboard_plan and not wants_new_dashboard(user_msg):
+    #                     st.markdown("🔁 Updating the existing dashboard...")
+    #                     state.dashboard_plan = revise_dashboard_plan(state, user_msg)
+    #                 else:
+    #                     st.markdown("📊 Designing dashboard based on your request...")
+    #                     state.dashboard_plan = create_dashboard_plan(state.df, state)
+
+    #                 st.session_state.ai_output = state.dashboard_plan
+
+    #         # Case 4: render
+    #         elif intent == "render" and state.dashboard_plan:
+    #             st.markdown("Here’s the current dashboard.")
+
+    #         else:
+    #             st.markdown("🤔 I’m not sure what to do yet. Can you clarify?")
+
+        
+
+
+with tabs[2]:
     if state.dashboard_plan and "analysis_summary" in state.dashboard_plan:
         summary = state.dashboard_plan["analysis_summary"]
 
