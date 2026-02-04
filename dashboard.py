@@ -79,19 +79,19 @@ def render_dashboard(df, plan):
         x = viz.get("x_axis")
         y = viz.get("y_axis")
         chart_type = viz.get("type", "bar")
-        title = viz.get("title", "")
+        chart_title = viz.get("title", "")
 
         try:
             if chart_type == "bar":
-                fig = px.bar(df, x=x, y=y, color=x)
+                fig = px.bar(df, x=x, y=y, color=x, title=chart_title)
             elif chart_type == "line":
-                fig = px.line(df, x=x, y=y, color=x)
+                fig = px.line(df, x=x, y=y, color=x, title = chart_title)
             elif chart_type == "scatter":
-                fig = px.scatter(df, x=x, y=y, color=x, hover_data=df.columns)
+                fig = px.scatter(df, x=x, y=y, color=x, hover_data=df.columns, title = chart_title)
             elif chart_type == "pie":
-                fig = px.pie(df, names=x, values=y)
+                fig = px.pie(df, names=x, values=y, title = chart_title)
             else:
-                fig = px.bar(df, x=x, y=y, color=x)
+                fig = px.bar(df, x=x, y=y, color=x, title = chart_title)
             chart_col.plotly_chart(fig, use_container_width=True)
         except Exception as e:
-            chart_col.error(f"{title} ❌ Error: {str(e)}")
+            chart_col.error(f"{chart_title} ❌ Error: {str(e)}")
