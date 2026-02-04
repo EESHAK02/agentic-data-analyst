@@ -357,8 +357,6 @@ Do NOT include explanations outside JSON.
 
         revised_plan = json.loads(match.group())
 
-        # -------- Validation layer --------
-
         # Validate visualizations
         valid_visuals = []
         for chart in revised_plan.get("visualizations", []):
