@@ -30,7 +30,7 @@ AI Dashboard Analyst is an interactive, LLM-powered dashboarding assistant. Uplo
 1. Clone the repo:
 
 ```bash
-git clone https://github.com/yourusername/ai-dashboard-analyst.git
+git clone https://github.com/EESHAK02/ai-dashboard-analyst.git
 cd ai-dashboard-analyst
 ```
 2. Create virtual environment if required and install dependencies
