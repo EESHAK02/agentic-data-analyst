@@ -88,8 +88,8 @@ with tabs[1]:  # Dashboard tab
                 response = analyst_explain(user_msg, state, state.df)
                 st.markdown(response["content"])
                 assistant_response = response["content"]
-                for step in response["next_steps"]:
-                    st.markdown(f"- {step}")
+                # for step in response["next_steps"]:
+                #     st.markdown(f"- {step}")
 
             elif mode == "create_dashboard":
                 state.user_goal = user_msg
