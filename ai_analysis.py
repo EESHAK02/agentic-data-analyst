@@ -151,11 +151,11 @@ def analyst_explain(user_msg: str, state: AnalystState, df: pd.DataFrame | None 
         explanation = {
             "type": "explanation",
             "content": text,
-            "next_steps": [
-                "Identify key variables from the question",
-                "Check distributions and trends",
-                "Decide if visualization or dashboard is needed"
-            ]
+            # "next_steps": [
+            #     "Identify key variables from the question",
+            #     "Check distributions and trends",
+            #     "Decide if visualization or dashboard is needed"
+            # ]
         }
         state.awaiting_clarification = False
         return explanation
