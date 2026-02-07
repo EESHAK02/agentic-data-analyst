@@ -1,6 +1,4 @@
 """
-Docstring for state
-
 Here we define the shared mutable state
 
 This state is basically the agent's memory across turns which tracks - 
